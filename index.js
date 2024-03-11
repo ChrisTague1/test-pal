@@ -78,19 +78,34 @@ function getComponents(projectDir, extensions = ['.ts', '.tsx', '.js', '.jsx']) 
                 });
 
                 traverse(ast, {
-                    // FunctionDeclaration(path) {
-                    //     potentialComponents.push(sourceCode.slice(path.node.start, path.node.end));
-                    // },
-                    ArrowFunctionExpression(path) {
-                        if (chris) {
-                            console.log(path.parent.id.name)
-                            potentialComponents.push(sourceCode.slice(path.parent.start, path.parent.end));
-                            chris = false
+                    FunctionDeclaration(path) {
+                        if (path.node.id && path.node.id.name.match(/^[A-Z]/)) {
+                            components.push({
+                                sourceCode: sourceCode.slice(path.node.start, path.node.end)
+                            });
                         }
                     },
-                    // ClassDeclaration(path) {
-                    //     potentialComponents.push(sourceCode.slice(path.node.start, path.node.end));
-                    // }
+                    ArrowFunctionExpression(path) {
+                        if (path.parent.id && path.parent.id.name.match(/^[A-Z]/)) {
+                            components.push({
+                                componentType: 'arrow',
+                                sourceCode: sourceCode.slice(path.parent.start, path.parent.end)
+                            })
+                        }
+                    },
+                    ClassDeclaration(path) {
+                        if (
+                            path.node.id &&
+                            path.node.id.name.match(/^[A-Z]/) &&
+                            path.node.superClass &&
+                            (path.node.superClass.name === 'Component' ||
+                                path.node.superClass.name === 'PureComponent')
+                        ) {
+                            components.push({
+                                sourceCode: sourceCode.slice(path.node.start, path.node.end)
+                            });
+                        }
+                    }
                 });
             }
         })
@@ -103,7 +118,6 @@ function getComponents(projectDir, extensions = ['.ts', '.tsx', '.js', '.jsx']) 
     return potentialComponents;
 }
 
-const components = getPotentialComponents('../TodoApp/src/components')
-    // .filter(isReactComponent);
+const components = getComponents('../TodoApp/src/components')
 
-// console.log(components);
+console.log(components);
