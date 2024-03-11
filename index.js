@@ -3,56 +3,6 @@ const path = require('path');
 const {parse} = require('@babel/parser');
 const traverse = require('@babel/traverse').default;
 
-// TODO improve this function
-function isReactComponent(sourceCode) {
-    let isComponent = false;
-
-    const ast = parse(sourceCode, {
-        sourceType: 'module',
-        plugins: ['jsx', 'typescript']
-    });
-
-    traverse(ast, {
-        FunctionDeclaration(path) {
-            if (path.node.id && path.node.id.name.match(/^[A-Z]/)) {
-                isComponent = true;
-            } else {
-                console.log('Not a component: function');
-                console.log(path.node.id);
-            }
-        },
-        ArrowFunctionExpression(path) {
-            console.log(path)
-            if (
-                path.parent.type === 'VariableDeclarator' &&
-                path.parent.id.type === 'Identifier' &&
-                path.parent.id.name.match(/^[A-Z]/)
-            ) {
-                isComponent = true;
-            } else {
-                console.log('Not a component: arrow');
-                console.log(path.node.id);
-            }
-        },
-        ClassDeclaration(path) {
-            if (
-                path.node.id &&
-                path.node.id.name.match(/^[A-Z]/) &&
-                path.node.superClass &&
-                (path.node.superClass.name === 'Component' ||
-                    path.node.superClass.name === 'PureComponent')
-            ) {
-                isComponent = true;
-            } else {
-                console.log('Not a component: class');
-                console.log(path.node.id);
-            }
-        }
-    });
-
-    return isComponent;
-}
-
 function getComponents(projectDir, extensions = ['.ts', '.tsx', '.js', '.jsx']) {
     const components = [];
 
@@ -61,7 +11,6 @@ function getComponents(projectDir, extensions = ['.ts', '.tsx', '.js', '.jsx']) 
 
         files.forEach((file) => {
             const filePath = path.join(currentDir, file);
-            console.log(filePath)
             const stats = fs.statSync(filePath);
 
             if (stats.isDirectory()) {
@@ -113,11 +62,15 @@ function getComponents(projectDir, extensions = ['.ts', '.tsx', '.js', '.jsx']) 
 
     traverseDirectory(projectDir);
 
-    console.log(potentialComponents);
-
-    return potentialComponents;
+    return components;
 }
 
-const components = getComponents('../TodoApp/src/components')
+const components = getComponents('../TodoApp/src')
 
-console.log(components);
+components.forEach(({sourceCode}) => {
+    console.log(sourceCode);
+
+    for (let i = 0; i < 10; i++) {
+        console.log()
+    }
+})
