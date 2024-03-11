@@ -1,85 +1,109 @@
 const fs = require('fs');
 const path = require('path');
-// const {parse} = require('@typescript-eslint/parser');
 const {parse} = require('@babel/parser');
-const {default: traverse} = require('@babel/traverse');
+const traverse = require('@babel/traverse').default;
 
-function findReactComponentFunctions(projectDir, extensions = ['.ts', '.tsx']) {
-    const componentFunctions = [];
+// TODO improve this function
+function isReactComponent(sourceCode) {
+    let isComponent = false;
+
+    const ast = parse(sourceCode, {
+        sourceType: 'module',
+        plugins: ['jsx', 'typescript']
+    });
+
+    traverse(ast, {
+        FunctionDeclaration(path) {
+            if (path.node.id && path.node.id.name.match(/^[A-Z]/)) {
+                isComponent = true;
+            } else {
+                console.log('Not a component: function');
+                console.log(path.node.id);
+            }
+        },
+        ArrowFunctionExpression(path) {
+            console.log(path)
+            if (
+                path.parent.type === 'VariableDeclarator' &&
+                path.parent.id.type === 'Identifier' &&
+                path.parent.id.name.match(/^[A-Z]/)
+            ) {
+                isComponent = true;
+            } else {
+                console.log('Not a component: arrow');
+                console.log(path.node.id);
+            }
+        },
+        ClassDeclaration(path) {
+            if (
+                path.node.id &&
+                path.node.id.name.match(/^[A-Z]/) &&
+                path.node.superClass &&
+                (path.node.superClass.name === 'Component' ||
+                    path.node.superClass.name === 'PureComponent')
+            ) {
+                isComponent = true;
+            } else {
+                console.log('Not a component: class');
+                console.log(path.node.id);
+            }
+        }
+    });
+
+    return isComponent;
+}
+
+function getComponents(projectDir, extensions = ['.ts', '.tsx', '.js', '.jsx']) {
+    const components = [];
 
     function traverseDirectory(currentDir) {
         const files = fs.readdirSync(currentDir);
 
         files.forEach((file) => {
             const filePath = path.join(currentDir, file);
+            console.log(filePath)
             const stats = fs.statSync(filePath);
 
             if (stats.isDirectory()) {
                 traverseDirectory(filePath);
-            } else
+                return;
+            }
+
             if (stats.isFile() && extensions.includes(path.extname(file))) {
                 const sourceCode = fs.readFileSync(filePath, 'utf8');
+
                 const ast = parse(sourceCode, {
                     sourceType: 'module',
                     plugins: ['typescript', 'jsx']
                 });
 
                 traverse(ast, {
-                    FunctionDeclaration(path) {
-                        const returnType = path.node.returnType;
-                        console.log(returnType);
-
-                        if (
-                            returnType &&
-                                returnType.typeAnnotation &&
-                                isReactElementType(returnType.typeAnnotation)
-                        ) {
-                            componentFunctions.push({
-                                filePath,
-                                functionName: path.node.id.name,
-                                sourceCode: sourceCode.slice(path.node.start, path.node.end)
-                            })
+                    // FunctionDeclaration(path) {
+                    //     potentialComponents.push(sourceCode.slice(path.node.start, path.node.end));
+                    // },
+                    ArrowFunctionExpression(path) {
+                        if (chris) {
+                            console.log(path.parent.id.name)
+                            potentialComponents.push(sourceCode.slice(path.parent.start, path.parent.end));
+                            chris = false
                         }
                     },
-                    ArrowFunctionExpression(path) {
-                        return;
-                        const returnType = path.node.returnType;
-                        if (
-                            returnType &&
-                                returnType.typeAnnotation &&
-                                isReactElementType(returnType.typeAnnotation)
-                        ) {
-                            componentFunctions.push({
-                                filePath,
-                                functionName: path.parent.id ? path.parent.id.name : 'Anonymous',
-                                sourceCode: sourceCode.slice(path.node.start, path.node.end),
-                            });
-                        }
-                    }
+                    // ClassDeclaration(path) {
+                    //     potentialComponents.push(sourceCode.slice(path.node.start, path.node.end));
+                    // }
                 });
             }
-        });
+        })
     }
 
     traverseDirectory(projectDir);
-    return componentFunctions;
+
+    console.log(potentialComponents);
+
+    return potentialComponents;
 }
 
-function isReactElementType(typeAnnotation) {
-    return (
-        typeAnnotation.type === 'TSTypeReference' &&
-        typeAnnotation.typeName.type === 'Identifier' &&
-        (typeAnnotation.typeName.name === 'JSX.Element' ||
-        typeAnnotation.typeName.name === 'React.ReactElement')
-    );
-}
+const components = getPotentialComponents('../TodoApp/src/components')
+    // .filter(isReactComponent);
 
-const projectDirectory = '../CounterApp/src';
-const reactComponentFunctions = findReactComponentFunctions(projectDirectory);
-
-reactComponentFunctions.forEach((func) => {
-    console.log('File:', func.filePath);
-    console.log('Function Name:', func.functionName);
-    console.log('Source code:', func.sourceCode);
-    console.log('---');
-});
+// console.log(components);
