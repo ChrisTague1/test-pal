@@ -30,7 +30,7 @@ function getComponents(projectDir, extensions = ['.ts', '.tsx', '.js', '.jsx']) 
                     FunctionDeclaration(path) {
                         if (path.node.id && path.node.id.name.match(/^[A-Z]/)) {
                             components.push({
-                                sourceCode: sourceCode.slice(path.node.start, path.node.end)
+                                sourceCode: sourceCode.slice(path.node.start, path.node.end).replace(/\n\s+/g, '')
                             });
                         }
                     },
@@ -38,7 +38,7 @@ function getComponents(projectDir, extensions = ['.ts', '.tsx', '.js', '.jsx']) 
                         if (path.parent.id && path.parent.id.name.match(/^[A-Z]/)) {
                             components.push({
                                 componentType: 'arrow',
-                                sourceCode: sourceCode.slice(path.parent.start, path.parent.end)
+                                sourceCode: sourceCode.slice(path.parent.start, path.parent.end).replace(/\n\s+/g, '')
                             })
                         }
                     },
@@ -51,7 +51,7 @@ function getComponents(projectDir, extensions = ['.ts', '.tsx', '.js', '.jsx']) 
                                 path.node.superClass.name === 'PureComponent')
                         ) {
                             components.push({
-                                sourceCode: sourceCode.slice(path.node.start, path.node.end)
+                                sourceCode: sourceCode.slice(path.node.start, path.node.end).replace(/\n\s+/g, '')
                             });
                         }
                     }
@@ -65,12 +65,5 @@ function getComponents(projectDir, extensions = ['.ts', '.tsx', '.js', '.jsx']) 
     return components;
 }
 
-const components = getComponents('../TodoApp/src')
-
-components.forEach(({sourceCode}) => {
-    console.log(sourceCode);
-
-    for (let i = 0; i < 10; i++) {
-        console.log()
-    }
-})
+const components = getComponents('../CounterApp/src')
+process.stdout.write(JSON.stringify({ components }))
